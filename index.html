@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Кубический Мир: Три Героя</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CubeWorld">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; width: 100vw; height: 100vh; position: fixed; }
+  canvas { display: block; }
+  #topBar { position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0.75), transparent); padding: 6px 10px 20px; z-index: 10; pointer-events: none; }
+  #hpBar, #manaBar, #xpBar { height: 12px; border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.5); margin-bottom: 3px; border: 1px solid rgba(255,255,255,0.25); }
+  #hpFill { height: 100%; width: 100%; background: linear-gradient(90deg,#dc2626,#ef4444); transition: width 0.25s; }
+  #manaFill { height: 100%; width: 100%; background: linear-gradient(90deg,#2563eb,#60a5fa); transition: width 0.25s; }
+  #xpFill { height: 100%; width: 0%; background: linear-gradient(90deg,#eab308,#facc15); transition: width 0.4s; }
+  #stats { color: white; font-size: 11px; text-shadow: 1px 1px 3px black; display: flex; justify-content: space-between; margin-top: 2px; padding: 0 4px; }
+  #questBox { position: fixed; top: 68px; right: 6px; color: #ffe066; text-shadow: 1px 1px 3px black; text-align: right; font-size: 10px; max-width: 55%; z-index: 10; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 6px; border-left: 3px solid #facc15; }
+  #toast { position: fixed; top: 30%; left: 50%; transform: translateX(-50%); color: #fde047; font-size: 15px; text-shadow: 2px 2px 5px black; pointer-events: none; opacity: 0; transition: opacity 0.4s; font-weight: bold; text-align: center; z-index: 20; padding: 8px 14px; width: 90%; max-width: 340px; background: rgba(0,0,0,0.65); border-radius: 10px; border: 2px solid #fde047; }
+  #joystick { position: fixed; bottom: 90px; left: 15px; width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.15), rgba(255,255,255,0.05)); border: 2px solid rgba(255,255,255,0.35); z-index: 15; touch-action: none; }
+  #stick { position: absolute; top: 50%; left: 50%; width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #94a3b8); border: 2px solid rgba(255,255,255,0.95); transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
+  .btn { position: fixed; border-radius: 50%; color: white; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 15; touch-action: none; text-shadow: 1px 1px 3px black; box-shadow: 0 3px 10px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); transition: transform 0.08s; }
+  .btn:active { transform: scale(0.92); }
+  #btnJump { bottom: 190px; right: 20px; width: 68px; height: 68px; background: radial-gradient(circle at 30% 30%, #38bdf8, #0369a1); border: 2px solid #bae6fd; }
+  #btnMine { bottom: 90px; right: 20px; width: 78px; height: 78px; background: radial-gradient(circle at 30% 30%, #f97316, #9a3412); border: 2px solid #fdba74; font-size: 26px; }
+  #btnPlace { bottom: 90px; right: 108px; width: 68px; height: 68px; background: radial-gradient(circle at 30% 30%, #a3a3a3, #525252); border: 2px solid #d4d4d4; }
+  #btnAttack { bottom: 178px; right: 108px; width: 62px; height: 62px; background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d); border: 2px solid #fca5a5; }
+  #btnBlock { top: 72px; right: 10px; width: 46px; height: 46px; background: radial-gradient(circle at 30% 30%, #a855f7, #6b21a8); border: 2px solid #d8b4fe; font-size: 18px; }
+  #btnSkills { top: 72px; left: 10px; width: 46px; height: 46px; background: radial-gradient(circle at 30% 30%, #fbbf24, #b45309); border: 2px solid #fde68a; font-size: 18px; }
+  #skillsBar { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 15; }
+  .skill { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, rgba(80,40,160,0.8), rgba(40,20,80,0.8)); border: 2px solid rgba(180,140,255,0.8); color: white; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 2px black; touch-action: none; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .skill:active { background: rgba(120,80,200,0.95); }
+  .skill .cd { position: absolute; inset: 0; background: rgba(0,0,0,0.75); border-radius: 8px; display: none; align-items: center; justify-content: center; font-size: 14px; }
+  .skill.cooling .cd { display: flex; }
+  #menu { position: fixed; inset: 0; background: linear-gradient(160deg, #0f172a, #1e1b4b, #0f172a); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; color: white; z-index: 100; transition: opacity 0.4s; padding: 20px 16px; text-align: center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #menu h1 { font-size: 24px; margin: 10px 0 6px; background: linear-gradient(90deg,#7dd3fc,#c4b5fd,#f0abfc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900; }
+  #menu h2 { font-size: 16px; color: #fde047; margin: 12px 0 6px; }
+  #menu p { max-width: 480px; line-height: 1.45; font-size: 12px; margin: 4px 0; color: #cbd5e1; }
+  #menu button { padding: 12px 28px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg,#16a34a,#15803d); border: 2px solid #4ade80; color: white; border-radius: 12px; margin-top: 12px; box-shadow: 0 4px 14px rgba(22,163,74,0.5); }
+  #heroSelect { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
+  .heroCard { width: 130px; padding: 10px 8px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15); cursor: pointer; transition: all 0.2s; }
+  .heroCard.selected { background: rgba(125,211,252,0.15); border-color: #7dd3fc; box-shadow: 0 0 18px rgba(125,211,252,0.5); }
+  .heroCard .icon { font-size: 32px; }
+  .heroCard .name { font-size: 13px; font-weight: bold; margin: 4px 0; }
+  .heroCard .desc { font-size: 9.5px; color: #94a3b8; line-height: 1.3; }
+  #skillTree { position: fixed; inset: 0; z-index: 90; background: linear-gradient(160deg, rgba(15,23,42,0.97), rgba(30,27,75,0.97)); display: none; flex-direction: column; align-items: center; padding: 16px; overflow-y: auto; color: white; }
+  #skillTree.open { display: flex; }
+  #skillTree h2 { font-size: 18px; margin: 8px 0; color: #fde047; }
+  .tier { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+  .node { width: 90px; padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); font-size: 10px; text-align: center; cursor: pointer; position: relative; }
+  .node .nIcon { font-size: 22px; }
+  .node .nName { font-weight: bold; margin-top: 3px; }
+  .node .nInfo { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+  .node.available { border-color: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,0.4); }
+  .node.learned { background: rgba(74,222,128,0.2); border-color: #4ade80; }
+  .node.learned::after { content: '✓'; position: absolute; top: 2px; right: 4px; color: #4ade80; font-weight: bold; }
+  .node.locked { opacity: 0.4; }
+  #closeTree { position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border-radius: 50%; background: #dc2626; border: 2px solid #fca5a5; color: white; font-size: 20px; font-weight: bold; }
+  #treePoints { color: #fde047; font-size: 14px; margin: 6px 0; background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 20px; border: 1px solid #fde047; }
+  #storyBox { position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%); background: rgba(0,0,0,0.92); color: white; padding: 16px 18px; border-radius: 12px; border: 2px solid #facc15; max-width: 90%; width: 340px; z-index: 40; display: none; font-size: 13px; line-height: 1.5; text-align: center; }
+  #storyBox.open { display: block; }
+  #storyBox button { margin-top: 12px; padding: 8px 20px; background: #facc15; border: none; border-radius: 8px; color: #1e293b; font-weight: bold; font-size: 13px; }
+  #minimap { position: fixed; top: 68px; left: 10px; width: 70px; height: 70px; border-radius: 8px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3); z-index: 10; overflow: hidden; }
+  #minimap canvas { width: 100%; height: 100%; }
+  #hint { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); color: white; font-size: 12px; text-align: center; background: rgba(0,0,0,0.8); padding: 12px 16px; border-radius: 10px; z-index: 30; pointer-events: none; transition: opacity 0.6s; width: 80%; max-width: 300px; border: 1px solid #7dd3fc; }
+  .hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>⚔️ КУБИЧЕСКИЙ МИР ⚔️</h1>
+  <p style="color:#7dd3fc; font-weight:bold">Три Героя</p>
+  <p>Мир раскололся на кубы, когда Древний Голем разбил Небесный Кристалл. Ты — один из трёх избранных героев. Победи Голема и восстанови мир!</p>
+  <h2>Выбери героя:</h2>
+  <div id="heroSelect">
+    <div class="heroCard" data-hero="sword">
+      <div class="icon">⚔️</div>
+      <div class="name">ГЕРОЙ МЕЧА</div>
+      <div class="desc">Танк-боец. Много HP, мощные удары, лечение.</div>
+    </div>
+    <div class="heroCard" data-hero="bow">
+      <div class="icon">🏹</div>
+      <div class="name">ГЕРОЙ ЛУКА</div>
+      <div class="desc">Дальний бой. Стрелы, замедление, криты.</div>
+    </div>
+    <div class="heroCard" data-hero="spear">
+      <div class="icon">🔱</div>
+      <div class="name">ГЕРОЙ КОПЬЯ</div>
+      <div class="desc">Универсал. Дальний удар, контроль, рывки.</div>
+    </div>
+  </div>
+  <button onclick="startGame()">▶ НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+</div>
+
+<div id="topBar">
+  <div id="hpBar"><div id="hpFill"></div></div>
+  <div id="manaBar"><div id="manaFill"></div></div>
+  <div id="xpBar"><div id="xpFill"></div></div>
+  <div id="stats">
+    <span id="statLeft">❤ 100/100</span>
+    <span id="statMid">⭐ Ур.1</span>
+    <span id="statRight">💧 100/100</span>
+  </div>
+</div>
+
+<div id="questBox"></div>
+<div id="minimap"><canvas id="minimapCanvas" width="70" height="70"></canvas></div>
+<div id="toast"></div>
+<div id="hint">👆 Свайпни экран для обзора</div>
+
+<div id="joystick"><div id="stick"></div></div>
+
+<div class="btn" id="btnJump">⬆</div>
+<div class="btn" id="btnMine">⛏</div>
+<div class="btn" id="btnPlace">🧱</div>
+<div class="btn" id="btnAttack">⚔</div>
+<div class="btn" id="btnBlock">🎨</div>
+<div class="btn" id="btnSkills">⭐</div>
+
+<div id="skillsBar"></div>
+
+<div id="skillTree">
+  <button id="closeTree">✕</button>
+  <h2 id="treeTitle">ДЕРЕВО НАВЫКОВ</h2>
+  <div id="treePoints">Очки навыков: 0</div>
+  <div class="treeGrid" id="treeGrid"></div>
+</div>
+
+<div id="storyBox">
+  <div id="storyText"></div>
+  <button onclick="closeStory()">Далее ▶</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===== ГЛОБАЛЬНОЕ =====
+let scene, camera, renderer, clock;
+let world = {}, worldData = {};
+const WORLD_SIZE = 38;
+const HEROES = {
+  sword: { name:'Герой Меча', icon:'⚔️', hp:140, mana:70, strength:12, speed:5.2, jump:9, attackRange:4, basicAttack:'melee', startingSkills:['slash','heal','whirlwind','rage'] },
+  bow:   { name:'Герой Лука', icon:'🏹', hp:90,  mana:130, strength:9,  speed:5.8, jump:10, attackRange:6, basicAttack:'arrow', startingSkills:['arrowShot','slowTrap','multishot','piercingArrow'] },
+  spear: { name:'Герой Копья', icon:'🔱', hp:115, mana:100, strength:11, speed:5.5, jump:9.5, attackRange:5, basicAttack:'melee', startingSkills:['thrust','dash','spin','impale'] }
+};
+let currentHero = 'sword';
+let treeOpen = false;
+
+const SKILL_TREES = {
+  sword: [
+    [ {id:'sw_hp1',name:'Стойкость',icon:'❤️',cost:1,req:[],desc:'+20 HP',apply:()=>{player.maxHp+=20;player.hp=player.maxHp;}},
+      {id:'sw_str1',name:'Сила',icon:'💪',cost:1,req:[],desc:'+15% урона',apply:()=>{player.dmgMult+=0.15;}},
+      {id:'sw_crit',name:'Крит',icon:'🎯',cost:1,req:[],desc:'+10% крит',apply:()=>{player.critChance+=0.10;}} ],
+    [ {id:'sw_regen',name:'Регенерация',icon:'💚',cost:2,req:['sw_hp1'],desc:'+2 HP/сек',apply:()=>{player.hpRegen+=2;}},
+      {id:'sw_vamp',name:'Вампиризм',icon:'🩸',cost:2,req:['sw_str1'],desc:'5% урона в HP',apply:()=>{player.lifesteal+=0.05;}},
+      {id:'sw_critdmg',name:'Ярость крита',icon:'💥',cost:2,req:['sw_crit'],desc:'Криты ×2.5',apply:()=>{player.critMult=2.5;}} ],
+    [ {id:'sw_armor',name:'Броня',icon:'🛡️',cost:3,req:['sw_regen'],desc:'-20% урона',apply:()=>{player.dmgReduce+=0.20;}},
+      {id:'sw_rage',name:'Неистовство',icon:'😡',cost:3,req:['sw_vamp'],desc:'HP<30% → ×1.8',apply:()=>{player.rageMode=true;}},
+      {id:'sw_ult',name:'МЕЧ РАЗРУШИТЕЛЬ',icon:'⚡',cost:4,req:['sw_critdmg'],desc:'AoE-атака',apply:()=>{player.hasUltimate=true;}} ]
+  ],
+  bow: [
+    [ {id:'bw_hp1',name:'Ловкость',icon:'🏃',cost:1,req:[],desc:'+0.6 скорость',apply:()=>{player.speed+=0.6;}},
+      {id:'bw_str1',name:'Меткость',icon:'🎯',cost:1,req:[],desc:'+15% урона',apply:()=>{player.dmgMult+=0.15;}},
+      {id:'bw_mana1',name:'Мудрость',icon:'💧',cost:1,req:[],desc:'+30 маны',apply:()=>{player.maxMana+=30;player.mana=player.maxMana;}} ],
+    [ {id:'bw_regen',name:'Концентрация',icon:'🌀',cost:2,req:['bw_mana1'],desc:'+5 маны/сек',apply:()=>{player.manaRegen+=5;}},
+      {id:'bw_crit',name:'Снайпер',icon:'🎯',cost:2,req:['bw_str1'],desc:'+15% крит',apply:()=>{player.critChance+=0.15;}},
+      {id:'bw_slow',name:'Ледяные стрелы',icon:'❄️',cost:2,req:['bw_hp1'],desc:'Замедление',apply:()=>{player.iceArrows=true;}} ],
+    [ {id:'bw_pierce',name:'Пробивание',icon:'➡️',cost:3,req:['bw_crit'],desc:'Пробивает 2',apply:()=>{player.piercing=true;}},
+      {id:'bw_multi',name:'Двойной выстрел',icon:'✌️',cost:3,req:['bw_regen'],desc:'2 стрелы',apply:()=>{player.doubleShot=true;}},
+      {id:'bw_ult',name:'ДОЖДЬ СТРЕЛ',icon:'🌧️',cost:4,req:['bw_pierce'],desc:'Залп каждые 5',apply:()=>{player.hasUltimate=true;}} ]
+  ],
+  spear: [
+    [ {id:'sp_hp1',name:'Дисциплина',icon:'❤️',cost:1,req:[],desc:'+15 HP',apply:()=>{player.maxHp+=15;player.hp=player.maxHp;}},
+      {id:'sp_str1',name:'Точность',icon:'💪',cost:1,req:[],desc:'+12% урона',apply:()=>{player.dmgMult+=0.12;}},
+      {id:'sp_range',name:'Длинный хват',icon:'📏',cost:1,req:[],desc:'+1.5 дальность',apply:()=>{player.attackRange+=1.5;}} ],
+    [ {id:'sp_regen',name:'Выносливость',icon:'💚',cost:2,req:['sp_hp1'],desc:'+1.5 HP/сек',apply:()=>{player.hpRegen+=1.5;}},
+      {id:'sp_dash',name:'Мастер рывка',icon:'💨',cost:2,req:['sp_str1'],desc:'-30% кулдаун',apply:()=>{player.dashCdMult=0.7;}},
+      {id:'sp_control',name:'Контроль',icon:'✋',cost:2,req:['sp_range'],desc:'Замедление',apply:()=>{player.slowAttack=true;}} ],
+    [ {id:'sp_counter',name:'Контратака',icon:'⚡',cost:3,req:['sp_regen'],desc:'30% отражение',apply:()=>{player.counter=0.30;}},
+      {id:'sp_shield',name:'Щит духа',icon:'🛡️',cost:3,req:['sp_dash'],desc:'+25 маны',apply:()=>{player.maxMana+=25;player.mana=player.maxMana;}},
+      {id:'sp_ult',name:'НЕБЕСНОЕ КОПЬЁ',icon:'🌟',cost:4,req:['sp_counter'],desc:'Удар молнии',apply:()=>{player.hasUltimate=true;}} ]
+  ]
+};
+
+const ABILITIES = {
+  slash:{icon:'⚔️',cost:20,cd:3,run:()=>abilitySlash()},
+  heal:{icon:'💚',cost:35,cd:8,run:()=>abilityHeal()},
+  whirlwind:{icon:'🌀',cost:40,cd:6,run:()=>abilityWhirlwind()},
+  rage:{icon:'😡',cost:50,cd:15,run:()=>abilityRage()},
+  arrowShot:{icon:'🏹',cost:15,cd:2,run:()=>abilityArrow(2.0)},
+  slowTrap:{icon:'❄️',cost:30,cd:8,run:()=>abilitySlowTrap()},
+  multishot:{icon:'🎯',cost:35,cd:6,run:()=>abilityMultishot()},
+  piercingArrow:{icon:'➡️',cost:45,cd:10,run:()=>abilityPiercing()},
+  thrust:{icon:'🔱',cost:20,cd:3,run:()=>abilityThrust()},
+  dash:{icon:'💨',cost:15,cd:4,run:()=>abilityDash()},
+  spin:{icon:'🌀',cost:35,cd:6,run:()=>abilitySpin()},
+  impale:{icon:'🌟',cost:45,cd:10,run:()=>abilityImpale()}
+};
+
+const player = {
+  pos: new THREE.Vector3(0, 22, 0), vel: new THREE.Vector3(), onGround:false,
+  hp:140,maxHp:140, level:1,xp:0,xpNext:60, mana:100,maxMana:100,
+  strength:12, speed:5.2, jumpPower:9,
+  dmgMult:1, critChance:0.05, critMult:2, hpRegen:0, manaRegen:8,
+  lifesteal:0, dmgReduce:0, rageMode:false,
+  attackRange:4, attackCooldown:0,
+  skillPoints:0, learnedSkills:new Set(), hasUltimate:false,
+  iceArrows:false, piercing:false, doubleShot:false,
+  dashCdMult:1, slowAttack:false, counter:0, hero:'sword',
+  selectedBlock:'grass', abilityCds:[0,0,0,0], attackCounter:0
+};
+
+const BLOCK_TYPES = {
+  grass:{color:0x4ade80,name:'Трава',hard:1}, dirt:{color:0x8b5a2b,name:'Земля',hard:1},
+  stone:{color:0x808080,name:'Камень',hard:2}, wood:{color:0x8b4513,name:'Дерево',hard:2},
+  leaves:{color:0x16a34a,name:'Листва',hard:1}, sand:{color:0xfcd34d,name:'Песок',hard:1},
+  water:{color:0x3b82f6,name:'Вода',hard:1}, gold:{color:0xfbbf24,name:'Золото',hard:3},
+  crystal:{color:0xa78bfa,name:'Кристалл',hard:4}, obsidian:{color:0x4c1d95,name:'Обсидиан',hard:5},
+  snow:{color:0xf1f5f9,name:'Снег',hard:1}, magma:{color:0xdc2626,name:'Магма',hard:4,emissive:0x7f1d1d},
+  ice:{color:0xbae6fd,name:'Лёд',hard:2,transparent:true}, mossy:{color:0x365314,name:'Мшистый',hard:3},
+  bone:{color:0xe7e5e4,name:'Кость',hard:2}
+};
+
+const MOB_TYPES = {
+  slime:{hp:25,dmg:5,speed:1.3,color:0x22c55e,size:1.0,xp:15,name:'Слизень'},
+  zombie:{hp:45,dmg:9,speed:1.8,color:0x65a30d,size:1.2,xp:25,name:'Зомби'},
+  skeleton:{hp:35,dmg:11,speed:2.0,color:0xe5e7eb,size:1.1,xp:30,name:'Скелет',ranged:true},
+  goblin:{hp:60,dmg:12,speed:2.4,color:0x84cc16,size:1.1,xp:40,name:'Гоблин'},
+  spider:{hp:40,dmg:10,speed:2.8,color:0x1e293b,size:1.0,xp:35,name:'Паук'},
+  knight:{hp:100,dmg:18,speed:1.6,color:0x475569,size:1.3,xp:70,name:'Рыцарь'},
+  mage:{hp:50,dmg:20,speed:1.7,color:0x7c3aed,size:1.1,xp:60,name:'Маг',ranged:true},
+  ghost:{hp:35,dmg:15,speed:3.0,color:0xc4b5fd,size:1.0,xp:50,name:'Призрак',transparent:true},
+  demon:{hp:150,dmg:25,speed:2.2,color:0xb91c1c,size:1.5,xp:120,name:'Демон'},
+  boss:{hp:800,dmg:35,speed:2.4,color:0x7c2d12,size:3.0,xp:800,name:'Древний Голем',boss:true}
+};
+
+let mobs = [], arrows = [], particles = [];
+let bossSpawned = false, goldCollected = 0, kills = 0;
+const keys = {};
+let yaw = 0, pitch = 0;
+const EYE_HEIGHT = 1.6;
+let joyActive = false, joyStart = {x:0,y:0}, joyVec = {x:0,y:0};
+let lookTouchId = null, lookLast = {x:0,y:0};
+
+function init() {
+  const H = HEROES[currentHero];
+  player.hero = currentHero;
+  player.hp = H.hp; player.maxHp = H.hp;
+  player.mana = H.mana; player.maxMana = H.mana;
+  player.strength = H.strength; player.speed = H.speed; player.jumpPower = H.jump;
+  player.attackRange = H.attackRange;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+  camera = new THREE.PerspectiveCamera(78, innerWidth/innerHeight, 0.1, 500);
+  renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const sun = new THREE.DirectionalLight(0xfff8e1, 1.1);
+  sun.position.set(50, 100, 30);
+  scene.add(sun);
+  scene.add(new THREE.AmbientLight(0xb8c8e0, 0.55));
+  scene.add(new THREE.HemisphereLight(0xa0d8ff, 0x3a5a30, 0.6));
+  clock = new THREE.Clock();
+
+  generateWorld();
+  setupControls();
+  updateUI();
+  updateSkillsBar();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+  setTimeout(() => { const h = document.getElementById
