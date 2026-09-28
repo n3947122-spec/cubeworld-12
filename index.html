@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Кубический Мир: Три Героя</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CubeWorld">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; width: 100vw; height: 100vh; position: fixed; }
+  canvas { display: block; }
+  #topBar { position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0.75), transparent); padding: 6px 10px 20px; z-index: 10; pointer-events: none; }
+  #hpBar, #manaBar, #xpBar { height: 12px; border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.5); margin-bottom: 3px; border: 1px solid rgba(255,255,255,0.25); }
+  #hpFill { height: 100%; width: 100%; background: linear-gradient(90deg,#dc2626,#ef4444); transition: width 0.25s; }
+  #manaFill { height: 100%; width: 100%; background: linear-gradient(90deg,#2563eb,#60a5fa); transition: width 0.25s; }
+  #xpFill { height: 100%; width: 0%; background: linear-gradient(90deg,#eab308,#facc15); transition: width 0.4s; }
+  #stats { color: white; font-size: 11px; text-shadow: 1px 1px 3px black; display: flex; justify-content: space-between; margin-top: 2px; padding: 0 4px; }
+  #questBox { position: fixed; top: 68px; right: 6px; color: #ffe066; text-shadow: 1px 1px 3px black; text-align: right; font-size: 10px; max-width: 55%; z-index: 10; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 6px; border-left: 3px solid #facc15; }
+  #toast { position: fixed; top: 30%; left: 50%; transform: translateX(-50%); color: #fde047; font-size: 15px; text-shadow: 2px 2px 5px black; pointer-events: none; opacity: 0; transition: opacity 0.4s; font-weight: bold; text-align: center; z-index: 20; padding: 8px 14px; width: 90%; max-width: 340px; background: rgba(0,0,0,0.65); border-radius: 10px; border: 2px solid #fde047; }
+  #joystick { position: fixed; bottom: 90px; left: 15px; width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.15), rgba(255,255,255,0.05)); border: 2px solid rgba(255,255,255,0.35); z-index: 15; touch-action: none; }
+  #stick { position: absolute; top: 50%; left: 50%; width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #94a3b8); border: 2px solid rgba(255,255,255,0.95); transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
+  .btn { position: fixed; border-radius: 50%; color: white; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 15; touch-action: none; text-shadow: 1px 1px 3px black; box-shadow: 0 3px 10px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); transition: transform 0.08s; }
+  .btn:active { transform: scale(0.92); }
+  #btnJump { bottom: 190px; right: 20px; width: 68px; height: 68px; background: radial-gradient(circle at 30% 30%, #38bdf8, #0369a1); border: 2px solid #bae6fd; }
+  #btnMine { bottom: 90px; right: 20px; width: 78px; height: 78px; background: radial-gradient(circle at 30% 30%, #f97316, #9a3412); border: 2px solid #fdba74; font-size: 26px; }
+  #btnPlace { bottom: 90px; right: 108px; width: 68px; height: 68px; background: radial-gradient(circle at 30% 30%, #a3a3a3, #525252); border: 2px solid #d4d4d4; }
+  #btnAttack { bottom: 178px; right: 108px; width: 62px; height: 62px; background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d); border: 2px solid #fca5a5; }
+  #btnBlock { top: 72px; right: 10px; width: 46px; height: 46px; background: radial-gradient(circle at 30% 30%, #a855f7, #6b21a8); border: 2px solid #d8b4fe; font-size: 18px; }
+  #btnSkills { top: 72px; left: 10px; width: 46px; height: 46px; background: radial-gradient(circle at 30% 30%, #fbbf24, #b45309); border: 2px solid #fde68a; font-size: 18px; }
+  #skillsBar { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 15; }
+  .skill { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, rgba(80,40,160,0.8), rgba(40,20,80,0.8)); border: 2px solid rgba(180,140,255,0.8); color: white; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 2px black; touch-action: none; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .skill:active { background: rgba(120,80,200,0.95); }
+  .skill .cd { position: absolute; inset: 0; background: rgba(0,0,0,0.75); border-radius: 8px; display: none; align-items: center; justify-content: center; font-size: 14px; }
+  .skill.cooling .cd { display: flex; }
+  #menu { position: fixed; inset: 0; background: linear-gradient(160deg, #0f172a, #1e1b4b, #0f172a); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; color: white; z-index: 100; transition: opacity 0.4s; padding: 20px 16px; text-align: center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #menu h1 { font-size: 24px; margin: 10px 0 6px; background: linear-gradient(90deg,#7dd3fc,#c4b5fd,#f0abfc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900; }
+  #menu h2 { font-size: 16px; color: #fde047; margin: 12px 0 6px; }
+  #menu p { max-width: 480px; line-height: 1.45; font-size: 12px; margin: 4px 0; color: #cbd5e1; }
+  #menu button { padding: 12px 28px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg,#16a34a,#15803d); border: 2px solid #4ade80; color: white; border-radius: 12px; margin-top: 12px; box-shadow: 0 4px 14px rgba(22,163,74,0.5); }
+  #heroSelect { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
+  .heroCard { width: 130px; padding: 10px 8px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15); cursor: pointer; transition: all 0.2s; }
+  .heroCard.selected { background: rgba(125,211,252,0.15); border-color: #7dd3fc; box-shadow: 0 0 18px rgba(125,211,252,0.5); }
+  .heroCard .icon { font-size: 32px; }
+  .heroCard .name { font-size: 13px; font-weight: bold; margin: 4px 0; }
+  .heroCard .desc { font-size: 9.5px; color: #94a3b8; line-height: 1.3; }
+  #skillTree { position: fixed; inset: 0; z-index: 90; background: linear-gradient(160deg, rgba(15,23,42,0.97), rgba(30,27,75,0.97)); display: none; flex-direction: column; align-items: center; padding: 16px; overflow-y: auto; color: white; }
+  #skillTree.open { display: flex; }
+  #skillTree h2 { font-size: 18px; margin: 8px 0; color: #fde047; }
+  .tier { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+  .node { width: 90px; padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); font-size: 10px; text-align: center; cursor: pointer; position: relative; }
+  .node .nIcon { font-size: 22px; }
+  .node .nName { font-weight: bold; margin-top: 3px; }
+  .node .nInfo { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+  .node.available { border-color: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,0.4); }
+  .node.learned { background: rgba(74,222,128,0.2); border-color: #4ade80; }
+  .node.learned::after { content: '✓'; position: absolute; top: 2px; right: 4px; color: #4ade80; font-weight: bold; }
+  .node.locked { opacity: 0.4; }
+  #closeTree { position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border-radius: 50%; background: #dc2626; border: 2px solid #fca5a5; color: white; font-size: 20px; font-weight: bold; }
+  #treePoints { color: #fde047; font-size: 14px; margin: 6px 0; background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 20px; border: 1px solid #fde047; }
+  #storyBox { position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%); background: rgba(0,0,0,0.92); color: white; padding: 16px 18px; border-radius: 12px; border: 2px solid #facc15; max-width: 90%; width: 340px; z-index: 40; display: none; font-size: 13px; line-height: 1.5; text-align: center; }
+  #storyBox.open { display: block; }
+  #storyBox button { margin-top: 12px; padding: 8px 20px; background: #facc15; border: none; border-radius: 8px; color: #1e293b; font-weight: bold; font-size: 13px; }
+  #minimap { position: fixed; top: 68px; left: 10px; width: 70px; height: 70px; border-radius: 8px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3); z-index: 10; overflow: hidden; }
+  #minimap canvas { width: 100%; height: 100%; }
+  #hint { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); color: white; font-size: 12px; text-align: center; background: rgba(0,0,0,0.8); padding: 12px 16px; border-radius: 10px; z-index: 30; pointer-events: none; transition: opacity 0.6s; width: 80%; max-width: 300px; border: 1px solid #7dd3fc; }
+  .hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>⚔️ КУБИЧЕСКИЙ МИР ⚔️</h1>
+  <p style="color:#7dd3fc; font-weight:bold">Три Героя</p>
+  <p>Мир раскололся на кубы, когда Древний Голем разбил Небесный Кристалл. Ты — один из трёх избранных героев. Победи Голема и восстанови мир!</p>
+  <h2>Выбери героя:</h2>
+  <div id="heroSelect">
+    <div class="heroCard" data-hero="sword">
+      <div class="icon">⚔️</div>
+      <div class="name">ГЕРОЙ МЕЧА</div>
+      <div class="desc">Танк-боец. Много HP, мощные удары, лечение.</div>
+    </div>
+    <div class="heroCard" data-hero="bow">
+      <div class="icon">🏹</div>
+      <div class="name">ГЕРОЙ ЛУКА</div>
+      <div class="desc">Дальний бой. Стрелы, замедление, криты.</div>
+    </div>
+    <div class="heroCard" data-hero="spear">
+      <div class="icon">🔱</div>
+      <div class="name">ГЕРОЙ КОПЬЯ</div>
+      <div class="desc">Универсал. Дальний удар, контроль, рывки.</div>
+    </div>
+  </div>
+  <button onclick="startGame()">▶ НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+</div>
+
+<div id="topBar">
+  <div id="hpBar"><div id="hpFill"></div></div>
+  <div id="manaBar"><div id="manaFill"></div></div>
+  <div id="xpBar"><div id="xpFill"></div></div>
+  <div id="stats">
+    <span id="statLeft">❤ 100/100</span>
+    <span id="statMid">⭐ Ур.1</span>
+    <span id="statRight">💧 100/100</span>
+  </div>
+</div>
+
+<div id="questBox"></div>
+<div id="minimap"><canvas id="minimapCanvas" width="70" height="70"></canvas></div>
+<div id="toast"></div>
+<div id="hint">👆 Свайпни экран для обзора</div>
+
+<div id="joystick"><div id="stick"></div></div>
+
+<div class="btn" id="btnJump">⬆</div>
+<div class="btn" id="btnMine">⛏</div>
+<div class="btn" id="btnPlace">🧱</div>
+<div class="btn" id="btnAttack">⚔</div>
+<div class="btn" id="btnBlock">🎨</div>
+<div class="btn" id="btnSkills">⭐</div>
+
+<div id="skillsBar"></div>
+
+<div id="skillTree">
+  <button id="closeTree">✕</button>
+  <h2 id="treeTitle">ДЕРЕВО НАВЫКОВ</h2>
+  <div id="treePoints">Очки навыков: 0</div>
+  <div class="treeGrid" id="treeGrid"></div>
+</div>
+
+<div id="storyBox">
+  <div id="storyText"></div>
+  <button onclick="closeStory()">Далее ▶</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===== ГЛОБАЛЬНОЕ =====
+let scene, camera, renderer, clock;
+let world = {}, worldData = {};
+const WORLD_SIZE = 38;
+const HEROES = {
+  sword: { name:'Герой Меча', icon:'⚔️', hp:140, mana:70, strength:12, speed:5.2, jump:9, attackRange:4, basicAttack:'melee', startingSkills:['slash','heal','whirlwind','rage'] },
+  bow:   { name:'Герой Лука', icon:'🏹', hp:90,  mana:130, strength:9,  speed:5.8, jump:10, attackRange:6, basicAttack:'arrow', startingSkills:['arrowShot','slowTrap','multishot','piercingArrow'] },
+  spear: { name:'Герой Копья', icon:'🔱', hp:115, mana:100, strength:11, speed:5.5, jump:9.5, attackRange:5, basicAttack:'melee', startingSkills:['thrust','dash','spin','impale'] }
+};
+let currentHero = 'sword';
+let treeOpen = false;
+
+const SKILL_TREES = {
+  sword: [
+    [ {id:'sw_hp1',name:'Стойкость',icon:'❤️',cost:1,req:[],desc:'+20 HP',apply:()=>{player.maxHp+=20;player.hp=player.maxHp;}},
+      {id:'sw_str1',name:'Сила',icon:'💪',cost:1,req:[],desc:'+15% урона',apply:()=>{player.dmgMult+=0.15;}},
+      {id:'sw_crit',name:'Крит',icon:'🎯',cost:1,req:[],desc:'+10% крит',apply:()=>{player.critChance+=0.10;}} ],
+    [ {id:'sw_regen',name:'Регенерация',icon:'💚',cost:2,req:['sw_hp1'],desc:'+2 HP/сек',apply:()=>{player.hpRegen+=2;}},
+      {id:'sw_vamp',name:'Вампиризм',icon:'🩸',cost:2,req:['sw_str1'],desc:'5% урона в HP',apply:()=>{player.lifesteal+=0.05;}},
+      {id:'sw_critdmg',name:'Ярость крита',icon:'💥',cost:2,req:['sw_crit'],desc:'Криты ×2.5',apply:()=>{player.critMult=2.5;}} ],
+    [ {id:'sw_armor',name:'Броня',icon:'🛡️',cost:3,req:['sw_regen'],desc:'-20% урона',apply:()=>{player.dmgReduce+=0.20;}},
+      {id:'sw_rage',name:'Неистовство',icon:'😡',cost:3,req:['sw_vamp'],desc:'HP<30% → ×1.8',apply:()=>{player.rageMode=true;}},
+      {id:'sw_ult',name:'МЕЧ РАЗРУШИТЕЛЬ',icon:'⚡',cost:4,req:['sw_critdmg'],desc:'AoE-атака',apply:()=>{player.hasUltimate=true;}} ]
+  ],
+  bow: [
+    [ {id:'bw_hp1',name:'Ловкость',icon:'🏃',cost:1,req:[],desc:'+0.6 скорость',apply:()=>{player.speed+=0.6;}},
+      {id:'bw_str1',name:'Меткость',icon:'🎯',cost:1,req:[],desc:'+15% урона',apply:()=>{player.dmgMult+=0.15;}},
+      {id:'bw_mana1',name:'Мудрость',icon:'💧',cost:1,req:[],desc:'+30 маны',apply:()=>{player.maxMana+=30;player.mana=player.maxMana;}} ],
+    [ {id:'bw_regen',name:'Концентрация',icon:'🌀',cost:2,req:['bw_mana1'],desc:'+5 маны/сек',apply:()=>{player.manaRegen+=5;}},
+      {id:'bw_crit',name:'Снайпер',icon:'🎯',cost:2,req:['bw_str1'],desc:'+15% крит',apply:()=>{player.critChance+=0.15;}},
+      {id:'bw_slow',name:'Ледяные стрелы',icon:'❄️',cost:2,req:['bw_hp1'],desc:'Замедление',apply:()=>{player.iceArrows=true;}} ],
+    [ {id:'bw_pierce',name:'Пробивание',icon:'➡️',cost:3,req:['bw_crit'],desc:'Пробивает 2',apply:()=>{player.piercing=true;}},
+      {id:'bw_multi',name:'Двойной выстрел',icon:'✌️',cost:3,req:['bw_regen'],desc:'2 стрелы',apply:()=>{player.doubleShot=true;}},
+      {id:'bw_ult',name:'ДОЖДЬ СТРЕЛ',icon:'🌧️',cost:4,req:['bw_pierce'],desc:'Залп каждые 5',apply:()=>{player.hasUltimate=true;}} ]
+  ],
+  spear: [
+    [ {id:'sp_hp1',name:'Дисциплина',icon:'❤️',cost:1,req:[],desc:'+15 HP',apply:()=>{player.maxHp+=15;player.hp=player.maxHp;}},
+      {id:'sp_str1',name:'Точность',icon:'💪',cost:1,req:[],desc:'+12% урона',apply:()=>{player.dmgMult+=0.12;}},
+      {id:'sp_range',name:'Длинный хват',icon:'📏',cost:1,req:[],desc:'+1.5 дальность',apply:()=>{player.attackRange+=1.5;}} ],
+    [ {id:'sp_regen',name:'Выносливость',icon:'💚',cost:2,req:['sp_hp1'],desc:'+1.5 HP/сек',apply:()=>{player.hpRegen+=1.5;}},
+      {id:'sp_dash',name:'Мастер рывка',icon:'💨',cost:2,req:['sp_str1'],desc:'-30% кулдаун',apply:()=>{player.dashCdMult=0.7;}},
+      {id:'sp_control',name:'Контроль',icon:'✋',cost:2,req:['sp_range'],desc:'Замедление',apply:()=>{player.slowAttack=true;}} ],
+    [ {id:'sp_counter',name:'Контратака',icon:'⚡',cost:3,req:['sp_regen'],desc:'30% отражение',apply:()=>{player.counter=0.30;}},
+      {id:'sp_shield',name:'Щит духа',icon:'🛡️',cost:3,req:['sp_dash'],desc:'+25 маны',apply:()=>{player.maxMana+=25;player.mana=player.maxMana;}},
+      {id:'sp_ult',name:'НЕБЕСНОЕ КОПЬЁ',icon:'🌟',cost:4,req:['sp_counter'],desc:'Удар молнии',apply:()=>{player.hasUltimate=true;}} ]
+  ]
+};
+
+const ABILITIES = {
+  slash:{icon:'⚔️',cost:20,cd:3,run:()=>abilitySlash()},
+  heal:{icon:'💚',cost:35,cd:8,run:()=>abilityHeal()},
+  whirlwind:{icon:'🌀',cost:40,cd:6,run:()=>abilityWhirlwind()},
+  rage:{icon:'😡',cost:50,cd:15,run:()=>abilityRage()},
+  arrowShot:{icon:'🏹',cost:15,cd:2,run:()=>abilityArrow(2.0)},
+  slowTrap:{icon:'❄️',cost:30,cd:8,run:()=>abilitySlowTrap()},
+  multishot:{icon:'🎯',cost:35,cd:6,run:()=>abilityMultishot()},
+  piercingArrow:{icon:'➡️',cost:45,cd:10,run:()=>abilityPiercing()},
+  thrust:{icon:'🔱',cost:20,cd:3,run:()=>abilityThrust()},
+  dash:{icon:'💨',cost:15,cd:4,run:()=>abilityDash()},
+  spin:{icon:'🌀',cost:35,cd:6,run:()=>abilitySpin()},
+  impale:{icon:'🌟',cost:45,cd:10,run:()=>abilityImpale()}
+};
+
+const player = {
+  pos: new THREE.Vector3(0, 22, 0), vel: new THREE.Vector3(), onGround:false,
+  hp:140,maxHp:140, level:1,xp:0,xpNext:60, mana:100,maxMana:100,
+  strength:12, speed:5.2, jumpPower:9,
+  dmgMult:1, critChance:0.05, critMult:2, hpRegen:0, manaRegen:8,
+  lifesteal:0, dmgReduce:0, rageMode:false,
+  attackRange:4, attackCooldown:0,
+  skillPoints:0, learnedSkills:new Set(), hasUltimate:false,
+  iceArrows:false, piercing:false, doubleShot:false,
+  dashCdMult:1, slowAttack:false, counter:0, hero:'sword',
+  selectedBlock:'grass', abilityCds:[0,0,0,0], attackCounter:0
+};
+
+const BLOCK_TYPES = {
+  grass:{color:0x4ade80,name:'Трава',hard:1}, dirt:{color:0x8b5a2b,name:'Земля',hard:1},
+  stone:{color:0x808080,name:'Камень',hard:2}, wood:{color:0x8b4513,name:'Дерево',hard:2},
+  leaves:{color:0x16a34a,name:'Листва',hard:1}, sand:{color:0xfcd34d,name:'Песок',hard:1},
+  water:{color:0x3b82f6,name:'Вода',hard:1}, gold:{color:0xfbbf24,name:'Золото',hard:3},
+  crystal:{color:0xa78bfa,name:'Кристалл',hard:4}, obsidian:{color:0x4c1d95,name:'Обсидиан',hard:5},
+  snow:{color:0xf1f5f9,name:'Снег',hard:1}, magma:{color:0xdc2626,name:'Магма',hard:4,emissive:0x7f1d1d},
+  ice:{color:0xbae6fd,name:'Лёд',hard:2,transparent:true}, mossy:{color:0x365314,name:'Мшистый',hard:3},
+  bone:{color:0xe7e5e4,name:'Кость',hard:2}
+};
+
+const MOB_TYPES = {
+  slime:{hp:25,dmg:5,speed:1.3,color:0x22c55e,size:1.0,xp:15,name:'Слизень'},
+  zombie:{hp:45,dmg:9,speed:1.8,color:0x65a30d,size:1.2,xp:25,name:'Зомби'},
+  skeleton:{hp:35,dmg:11,speed:2.0,color:0xe5e7eb,size:1.1,xp:30,name:'Скелет',ranged:true},
+  goblin:{hp:60,dmg:12,speed:2.4,color:0x84cc16,size:1.1,xp:40,name:'Гоблин'},
+  spider:{hp:40,dmg:10,speed:2.8,color:0x1e293b,size:1.0,xp:35,name:'Паук'},
+  knight:{hp:100,dmg:18,speed:1.6,color:0x475569,size:1.3,xp:70,name:'Рыцарь'},
+  mage:{hp:50,dmg:20,speed:1.7,color:0x7c3aed,size:1.1,xp:60,name:'Маг',ranged:true},
+  ghost:{hp:35,dmg:15,speed:3.0,color:0xc4b5fd,size:1.0,xp:50,name:'Призрак',transparent:true},
+  demon:{hp:150,dmg:25,speed:2.2,color:0xb91c1c,size:1.5,xp:120,name:'Демон'},
+  boss:{hp:800,dmg:35,speed:2.4,color:0x7c2d12,size:3.0,xp:800,name:'Древний Голем',boss:true}
+};
+
+let mobs = [], arrows = [], particles = [];
+let bossSpawned = false, goldCollected = 0, kills = 0;
+const keys = {};
+let yaw = 0, pitch = 0;
+const EYE_HEIGHT = 1.6;
+let joyActive = false, joyStart = {x:0,y:0}, joyVec = {x:0,y:0};
+let lookTouchId = null, lookLast = {x:0,y:0};
+
+function init() {
+  const H = HEROES[currentHero];
+  player.hero = currentHero;
+  player.hp = H.hp; player.maxHp = H.hp;
+  player.mana = H.mana; player.maxMana = H.mana;
+  player.strength = H.strength; player.speed = H.speed; player.jumpPower = H.jump;
+  player.attackRange = H.attackRange;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+  camera = new THREE.PerspectiveCamera(78, innerWidth/innerHeight, 0.1, 500);
+  renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const sun = new THREE.DirectionalLight(0xfff8e1, 1.1);
+  sun.position.set(50, 100, 30);
+  scene.add(sun);
+  scene.add(new THREE.AmbientLight(0xb8c8e0, 0.55));
+  scene.add(new THREE.HemisphereLight(0xa0d8ff, 0x3a5a30, 0.6));
+  clock = new THREE.Clock();
+
+  generateWorld();
+  setupControls();
+  updateUI();
+  updateSkillsBar();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+  setTimeout(() => { const h = document.getElementById('hint'); if (h) h.style.opacity = 0; }, 3500);
+  setTimeout(() => showStory(storyIntro), 700);
+  animate();
+}
+
+function noise2D(x, z) {
+  return Math.sin(x*0.1)*Math.cos(z*0.15)*3 + Math.sin(x*0.05+z*0.03)*4 + Math.cos(x*0.2)*Math.sin(z*0.18)*1.5;
+}
+
+function generateWorld() {
+  for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x++) {
+    for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z++) {
+      const height = Math.floor(5 + noise2D(x, z));
+      const d = Math.sqrt(x*x + z*z);
+      let biome = 'grass';
+      if (d > WORLD_SIZE*0.55 && d < WORLD_SIZE*0.75) biome = 'sand';
+      if (d > WORLD_SIZE*0.75 && d < WORLD_SIZE*0.9) biome = 'snow';
+      if (d > WORLD_SIZE*0.9) biome = 'magma';
+
+      for (let y = 0; y <= height; y++) {
+        let type;
+        if (y === height) type = biome==='grass'?'grass':biome==='sand'?'sand':biome==='snow'?'snow':'magma';
+        else if (y > height-3) type = biome==='snow'?'snow':'dirt';
+        else type = 'stone';
+        if (biome === 'magma' && y < height-2) type = 'obsidian';
+        if (y === height-1 && biome === 'snow' && Math.random() < 0.3) type = 'ice';
+        if (type === 'stone' && Math.random() < 0.02) type = 'gold';
+        if (type === 'stone' && Math.random() < 0.01) type = 'crystal';
+        if (y < 3 && Math.random() < 0.008) type = 'obsidian';
+        if (biome === 'snow' && type === 'stone' && Math.random() < 0.02) type = 'bone';
+        if (type === 'stone' && Math.random() < 0.03) type = 'mossy';
+        placeBlock(x, y, z, type);
+      }
+
+      if (biome === 'grass' && Math.random() < 0.014 && Math.abs(x) < WORLD_SIZE*0.5 && Math.abs(z) < WORLD_SIZE*0.5) {
+        createTree(x, height+1, z);
+      }
+    }
+  }
+  buildPortal(0, 8, -24);
+  for (let i = 0; i < 22; i++) spawnRandomMob();
+}
+
+function createTree(x, y, z) {
+  const h = 4 + Math.floor(Math.random()*3);
+  for (let i = 0; i < h; i++) placeBlock(x, y+i, z, 'wood');
+  for (let dx = -2; dx <= 2; dx++)
+    for (let dz = -2; dz <= 2; dz++)
+      for (let dy = 0; dy <= 2; dy++) {
+        if (Math.abs(dx)+Math.abs(dz)+dy > 3) continue;
+        if (dx===0 && dz===0 && dy < 3) continue;
+        placeBlock(x+dx, y+h-1+dy, z+dz, 'leaves');
+      }
+}
+
+function buildPortal(x, y, z) {
+  for (let dx = -2; dx <= 2; dx++) { placeBlock(x+dx, y, z, 'obsidian'); placeBlock(x+dx, y+5, z, 'obsidian'); }
+  for (let dy = 0; dy <= 5; dy++) { placeBlock(x-2, y+dy, z, 'obsidian'); placeBlock(x+2, y+dy, z, 'obsidian'); }
+  for (let dx = -1; dx <= 1; dx++) for (let dy = 1; dy <= 4; dy++) placeBlock(x+dx, y+dy, z, 'crystal');
+}
+
+const blockGeo = new THREE.BoxGeometry(1,1,1);
+const blockMaterials = {};
+function getBlockMaterial(type) {
+  if (blockMaterials[type]) return blockMaterials[type];
+  const info = BLOCK_TYPES[type];
+  const mat = new THREE.MeshLambertMaterial({
+    color: info.color,
+    transparent: !!info.transparent || type === 'water',
+    opacity: type === 'water' ? 0.75 : (info.transparent ? 0.85 : 1),
+    emissive: info.emissive || 0x000000
+  });
+  blockMaterials[type] = mat;
+  return mat;
+}
+function placeBlock(x, y, z, type) {
+  const key = `${x},${y},${z}`;
+  if (world[key]) return;
+  const mesh = new THREE.Mesh(blockGeo, getBlockMaterial(type));
+  mesh.position.set(x, y, z);
+  mesh.userData = { type, x, y, z };
+  scene.add(mesh);
+  world[key] = mesh;
+  worldData[key] = type;
+}
+function removeBlock(x, y, z) {
+  const key = `${x},${y},${z}`;
+  const mesh = world[key];
+  if (!mesh) return null;
+  scene.remove(mesh);
+  const type = worldData[key];
+  delete world[key]; delete worldData[key];
+  return type;
+}
+
+function spawnRandomMob() {
+  const d = Math.sqrt(player.pos.x**2 + player.pos.z**2);
+  const types = ['slime','slime','zombie','skeleton','goblin','spider'];
+  if (d > 15) types.push('knight','mage','ghost');
+  if (d > 25) types.push('demon','demon');
+  const type = types[Math.floor(Math.random()*types.length)];
+  spawnMobAt(type, false);
+}
+
+function spawnMobAt(typeKey, isBoss) {
+  const t = MOB_TYPES[typeKey];
+  const s = t.size;
+  const geo = new THREE.BoxGeometry(s, s*1.3, s);
+  const mat = new THREE.MeshLambertMaterial({ color:t.color, transparent:!!t.transparent, opacity:t.transparent?0.7:1, emissive:t.boss?0x7c2d12:0x000000 });
+  const mesh = new THREE.Mesh(geo, mat);
+  let x, z, y;
+  if (isBoss) { x = 0; z = -28; y = 12; }
+  else {
+    const angle = Math.random()*Math.PI*2;
+    const dist = 12 + Math.random()*22;
+    x = Math.cos(angle)*dist; z = Math.sin(angle)*dist; y = 20;
+  }
+  mesh.position.set(x, y, z);
+  if (!isBoss) {
+    const eyeGeo = new THREE.BoxGeometry(0.15,0.15,0.15);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const e1 = new THREE.Mesh(eyeGeo, eyeMat); e1.position.set(-0.2,0.2,s/2+0.05);
+    const e2 = new THREE.Mesh(eyeGeo, eyeMat); e2.position.set(0.2,0.2,s/2+0.05);
+    mesh.add(e1); mesh.add(e2);
+  }
+  scene.add(mesh);
+  mobs.push({ mesh, type:typeKey, hp:t.hp+(isBoss?0:player.level*3), maxHp:t.hp+(isBoss?0:player.level*3), dmg:t.dmg, speed:t.speed, isBoss, ranged:!!t.ranged, attackCd:0, slowT:0, xp:t.xp, color:t.color });
+}
+
+function damageMob(mob, dmg, isCrit = false) {
+  if (isCrit) dmg *= player.critMult;
+  mob.hp -= dmg;
+  if (player.lifesteal > 0) player.hp = Math.min(player.maxHp, player.hp + dmg*player.lifesteal);
+  if (mob.mesh.material) {
+    mob.mesh.material.color.setHex(0xffffff);
+    setTimeout(() => { if (mob.mesh && mob.mesh.material) mob.mesh.material.color.setHex(mob.color); }, 90);
+  }
+  spawnDamageParticles(mob.mesh.position, isCrit ? 0xff0000 : 0xffaa00);
+  if (mob.hp <= 0) {
+    scene.remove(mob.mesh);
+    mobs.splice(mobs.indexOf(mob), 1);
+    kills++;
+    addXP(mob.isBoss ? 800 : mob.xp);
+    if (mob.isBoss) { showToast('🏆 ДРЕВНИЙ ГОЛЕМ ПОВЕРЖЕН!'); activatePortal(); }
+  }
+}
+
+function spawnDamageParticles(pos, color) {
+  for (let i = 0; i < 5; i++) {
+    const geo = new THREE.BoxGeometry(0.15,0.15,0.15);
+    const mat = new THREE.MeshBasicMaterial({ color });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.copy(pos);
+    p.position.x += (Math.random()-0.5)*0.8;
+    p.position.y += Math.random()*0.8;
+    p.position.z += (Math.random()-0.5)*0.8;
+    p.userData.vel = new THREE.Vector3((Math.random()-0.5)*4, Math.random()*3+1, (Math.random()-0.5)*4);
+    p.userData.life = 0.6;
+    scene.add(p);
+    particles.push(p);
+  }
+}
+function updateParticles(dt) {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.userData.vel.y -= 15*dt;
+    p.position.addScaledVector(p.userData.vel, dt);
+    p.userData.life -= dt;
+    p.rotation.x += 5*dt; p.rotation.y += 5*dt;
+    if (p.userData.life <= 0) { scene.remove(p); particles.splice(i, 1); }
+  }
+}
+
+function setupControls() {
+  const joy = document.getElementById('joystick');
+  const stick = document.getElementById('stick');
+  let joyTouchId = null;
+  joy.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyTouchId = t.identifier;
+    joyActive = true; joyStart = { x:t.clientX, y:t.clientY };
+    updateStick(t);
+  }, { passive: false });
+  joy.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!joyActive) return;
+    const t = Array.from(e.touches).find(tt => tt.identifier === joyTouchId);
+    if (t) updateStick(t);
+  }, { passive: false });
+  const endJoy = e => { e.preventDefault(); joyActive = false; joyTouchId = null; joyVec = {x:0,y:0}; stick.style.transform = 'translate(-50%, -50%)'; };
+  joy.addEventListener('touchend', endJoy, { passive: false });
+  joy.addEventListener('touchcancel', endJoy, { passive: false });
+  function updateStick(t) {
+    const maxR = 42;
+    let dx = t.clientX - joyStart.x, dy = t.clientY - joyStart.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxR) { dx = dx/dist*maxR; dy = dy/dist*maxR; }
+    stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    joyVec.x = dx/maxR; joyVec.y = dy/maxR;
+  }
+
+  const canvas = renderer.domElement;
+  canvas.addEventListener('touchstart', e => {
+    for (const t of e.changedTouches) {
+      if (lookTouchId === null) { lookTouchId = t.identifier; lookLast = { x:t.clientX, y:t.clientY }; }
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === lookTouchId) {
+        yaw -= (t.clientX - lookLast.x)*0.006;
+        pitch -= (t.clientY - lookLast.y)*0.006;
+        pitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, pitch));
+        lookLast = { x:t.clientX, y:t.clientY };
+      }
+    }
+  }, { passive: false });
+  const endLook = e => { for (const t of e.changedTouches) { if (t.identifier === lookTouchId) lookTouchId = null; } };
+  canvas.addEventListener('touchend', endLook, { passive: true });
+  canvas.addEventListener('touchcancel', endLook, { passive: true });
+
+  bindBtn('btnJump', () => { keys['Space'] = true; setTimeout(() => keys['Space'] = false, 130); });
+  bindBtn('btnMine', () => mineBlock());
+  bindBtn('btnPlace', () => placeSelectedBlock());
+  bindBtn('btnAttack', () => attack());
+  bindBtn('btnBlock', () => cycleBlock());
+  bindBtn('btnSkills', () => toggleSkillTree());
+  document.getElementById('closeTree').addEventListener('click', toggleSkillTree);
+
+  document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'KeyQ') cycleBlock();
+    if (e.code === 'KeyT') toggleSkillTree();
+    if (e.code === 'KeyF') attack();
+    if (e.code === 'Digit1') useAbility(0);
+    if (e.code === 'Digit2') useAbility(1);
+    if (e.code === 'Digit3') useAbility(2);
+    if (e.code === 'Digit4') useAbility(3);
+    if (e.code === 'Space') e.preventDefault();
+  });
+  document.addEventListener('keyup', e => keys[e.code] = false);
+}
+
+function bindBtn(id, action) {
+  const el = document.getElementById(id);
+  let fired = false;
+  el.addEventListener('touchstart', e => {
+    e.preventDefault(); e.stopPropagation();
+    fired = true; action();
+    setTimeout(() => fired = false, 200);
+  }, { passive: false });
+  el.addEventListener('click', e => { e.stopPropagation(); if (!fired) action(); });
+}
+
+function cycleBlock() {
+  const types = ['grass','dirt','stone','wood','leaves','sand','gold','crystal','obsidian','ice','magma','mossy','bone'];
+  const idx = types.indexOf(player.selectedBlock);
+  player.selectedBlock = types[(idx+1) % types.length];
+  showToast(`${BLOCK_TYPES[player.selectedBlock].name}`);
+}
+
+const raycaster = new THREE.Raycaster();
+function getTargetBlock() {
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  raycaster.set(camera.position, dir);
+  raycaster.far = 6;
+  const hits = raycaster.intersectObjects(Object.values(world));
+  return hits[0] || null;
+}
+function mineBlock() {
+  const hit = getTargetBlock();
+  if (!hit) return;
+  const { x, y, z } = hit.object.userData;
+  const gained = removeBlock(x, y, z);
+  if (gained) {
+    addXP(BLOCK_TYPES[gained].hard*2);
+    if (gained === 'gold') { goldCollected++; }
+  }
+}
+function placeSelectedBlock() {
+  const hit = getTargetBlock();
+  if (!hit) return;
+  const n = hit.face.normal;
+  const { x, y, z } = hit.object.userData;
+  const nx = x+n.x, ny = y+n.y, nz = z+n.z;
+  if (world[`${nx},${ny},${nz}`]) return;
+  const px = Math.round(player.pos.x), py = Math.round(player.pos.y), pz = Math.round(player.pos.z);
+  if (nx === px && nz === pz && (ny === py || ny === py+1)) return;
+  placeBlock(nx, ny, nz, player.selectedBlock);
+  addXP(1);
+}
+
+function attack() {
+  if (player.attackCooldown > 0) return;
+  player.attackCooldown = 0.45;
+  player.attackCounter++;
+  const H = HEROES[player.hero];
+  const isCrit = Math.random() < player.critChance;
+  const dmgBase = player.strength * player.dmgMult * (player.rageMode && player.hp/player.maxHp < 0.3 ? 1.8 : 1);
+  if (H.basicAttack === 'arrow') {
+    spawnArrow(dmgBase, isCrit);
+    if (player.hasUltimate && player.attackCounter % 5 === 0) {
+      showToast('🌧️ ДОЖДЬ СТРЕЛ!');
+      for (let i = -2; i <= 2; i++) setTimeout(() => spawnArrow(dmgBase*0.7, false, i*0.15), Math.abs(i)*100);
+    }
+  } else {
+    const range = player.attackRange;
+    let hitAny = false;
+    mobs.forEach(m => {
+      const d = m.mesh.position.distanceTo(player.pos);
+      if (d < range) {
+        const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+        const toMob = new THREE.Vector3().subVectors(m.mesh.position, player.pos).normalize();
+        if (dir.dot(toMob) > 0.4) {
+          damageMob(m, dmgBase, isCrit);
+          hitAny = true;
+          if (player.slowAttack) m.slowT = 2;
+          if (player.hasUltimate && player.hero === 'sword') {
+            mobs.forEach(m2 => { if (m2 !== m && m2.mesh.position.distanceTo(player.pos) < range) damageMob(m2, dmgBase*0.6, false); });
+          }
+        }
+      }
+    });
+    if (hitAny && isCrit) showToast('💥 КРИТ!');
+  }
+}
+
+function spawnArrow(dmg, isCrit, spreadY = 0) {
+  const geo = new THREE.BoxGeometry(0.15,0.15,0.6);
+  const mat = new THREE.MeshBasicMaterial({ color: player.iceArrows ? 0x93c5fd : 0xfbbf24 });
+  const arrow = new THREE.Mesh(geo, mat);
+  arrow.position.copy(camera.position);
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  if (spreadY) dir.applyAxisAngle(new THREE.Vector3(0,1,0), spreadY);
+  arrow.userData = { vel: dir.multiplyScalar(35), life: 2, dmg, isCrit, piercing: player.piercing, hitMobs:[], ice: player.iceArrows };
+  scene.add(arrow);
+  arrows.push(arrow);
+}
+
+function useAbility(idx) {
+  const H = HEROES[player.hero];
+  const skillKey = H.startingSkills[idx];
+  const ab = ABILITIES[skillKey];
+  if (!ab) return;
+  if (player.abilityCds[idx] > 0) return;
+  if (player.mana < ab.cost) { showToast('Мало маны!'); return; }
+  player.mana -= ab.cost;
+  player.abilityCds[idx] = ab.cd * (skillKey === 'dash' ? player.dashCdMult : 1);
+  ab.run();
+}
+
+function abilitySlash() {
+  const dmg = player.strength * player.dmgMult * 1.8;
+  const range = player.attackRange + 1;
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  let hits = 0;
+  mobs.slice().forEach(m => {
+    if (m.mesh.position.distanceTo(player.pos) < range) {
+      const toMob = new THREE.Vector3().subVectors(m.mesh.position, player.pos).normalize();
+      if (dir.dot(toMob) > 0.2) { damageMob(m, dmg, false); hits++; }
+    }
+  });
+  showToast(hits ? `⚔️ Рассечение! (${hits})` : '⚔️ Рассечение');
+}
+function abilityHeal() {
+  const heal = 50 + player.level*3;
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+  showToast(`💚 +${heal} HP`);
+}
+function abilityWhirlwind() {
+  const dmg = player.strength * player.dmgMult * 1.4;
+  mobs.slice().forEach(m => { if (m.mesh.position.distanceTo(player.pos) < 4.5) damageMob(m, dmg, false); });
+  showToast('🌀 ВИХРЬ!');
+}
+function abilityRage() {
+  player.hp = Math.min(player.maxHp, player.hp + 20);
+  player.mana = Math.min(player.maxMana, player.mana + 40);
+  showToast('😡 Ярость');
+}
+function abilityArrow(mult) {
+  const dmg = player.strength * player.dmgMult * mult;
+  spawnArrow(dmg, Math.random() < player.critChance);
+  if (player.doubleShot) {
+    setTimeout(() => spawnArrow(dmg, false, 0.1), 80);
+    setTimeout(() => spawnArrow(dmg, false, -0.1), 160);
+  }
+  showToast('🏹 Выстрел!');
+}
+function abilitySlowTrap() {
+  mobs.forEach(m => { if (m.mesh.position.distanceTo(player.pos) < 6) { m.slowT = 4; damageMob(m, player.strength*0.5, false); } });
+  showToast('❄️ Ловушка!');
+}
+function abilityMultishot() {
+  const dmg = player.strength * player.dmgMult * 1.2;
+  for (let i = -2; i <= 2; i++) spawnArrow(dmg, Math.random() < player.critChance, i*0.12);
+  showToast('🎯 Веер стрел!');
+}
+function abilityPiercing() {
+  const dmg = player.strength * player.dmgMult * 2.5;
+  const old = player.piercing;
+  player.piercing = true;
+  spawnArrow(dmg, true);
+  setTimeout(() => player.piercing = old, 100);
+  showToast('➡️ Пронзающая!');
+}
+function abilityThrust() {
+  const dmg = player.strength * player.dmgMult * 2.0;
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  const range = player.attackRange + 2;
+  mobs.slice().forEach(m => {
+    if (m.mesh.position.distanceTo(player.pos) < range) {
+      const toMob = new THREE.Vector3().subVectors(m.mesh.position, player.pos).normalize();
+      if (dir.dot(toMob) > 0.3) damageMob(m, dmg, false);
+    }
+  });
+  showToast('🔱 Выпад!');
+}
+function abilityDash() {
+  const dir = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  player.vel.x += -dir.x * 22; player.vel.z += -dir.z * 22;
+  showToast('💨 Рывок!');
+}
+function abilitySpin() {
+  const dmg = player.strength * player.dmgMult * 1.6;
+  mobs.slice().forEach(m => { if (m.mesh.position.distanceTo(player.pos) < 5) { damageMob(m, dmg, false); m.slowT = 1.5; } });
+  showToast('🌀 Вращение!');
+}
+function abilityImpale() {
+  const dmg = player.strength * player.dmgMult * 3.0;
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  let hit = null, dmin = 999;
+  mobs.forEach(m => {
+    const d = m.mesh.position.distanceTo(player.pos);
+    if (d < 8) {
+      const toMob = new THREE.Vector3().subVectors(m.mesh.position, player.pos).normalize();
+      if (dir.dot(toMob) > 0.5 && d < dmin) { dmin = d; hit = m; }
+    }
+  });
+  if (hit) { damageMob(hit, dmg, true); showToast('🌟 ПРОКОЛ!'); }
+  else showToast('🌟 Промах');
+}
+
+function updateArrows(dt) {
+  for (let i = arrows.length-1; i >= 0; i--) {
+    const a = arrows[i];
+    a.position.addScaledVector(a.userData.vel, dt);
+    a.userData.life -= dt;
+    a.userData.vel.y -= 8*dt;
+    let hit = false;
+    mobs.forEach(m => {
+      if (a.userData.hitMobs.includes(m)) return;
+      const hitRadius = 0.8 + (m.isBoss ? 1 : 0);
+      if (a.position.distanceTo(m.mesh.position) < hitRadius) {
+        damageMob(m, a.userData.dmg, a.userData.isCrit);
+        if (a.userData.ice) m.slowT = 2;
+        a.userData.hitMobs.push(m);
+        if (!a.userData.piercing) hit = true;
+      }
+    });
+    if (hit || a.userData.life <= 0 || a.position.y < -5) { scene.remove(a); arrows.splice(i, 1); }
+  }
+}
+
+function addXP(amount) {
+  player.xp += amount;
+  while (player.xp >= player.xpNext) {
+    player.xp -= player.xpNext;
+    player.level++;
+    player.xpNext = Math.floor(player.xpNext*1.4);
+    player.maxHp += 8; player.hp = player.maxHp;
+    player.maxMana += 8; player.mana = player.maxMana;
+    player.strength += 1;
+    player.skillPoints++;
+    showToast(`⬆ УРОВЕНЬ ${player.level}!`);
+  }
+  updateUI(); updateSkillsBar();
+}
+
+function toggleSkillTree() {
+  treeOpen = !treeOpen;
+  const el = document.getElementById('skillTree');
+  if (treeOpen) { el.classList.add('open'); renderTree(); }
+  else el.classList.remove('open');
+}
+
+function renderTree() {
+  const H = HEROES[player.hero];
+  document.getElementById('treeTitle').textContent = `${H.icon} ${H.name.toUpperCase()}`;
+  document.getElementById('treePoints').textContent = `Очки навыков: ${player.skillPoints}`;
+  const grid = document.getElementById('treeGrid');
+  grid.innerHTML = '';
+  const tree = SKILL_TREES[player.hero];
+  tree.forEach((tier, tierIdx) => {
+    const tierDiv = document.createElement('div');
+    tierDiv.className = 'tier';
+    tier.forEach(node => {
+      const div = document.createElement('div');
+      div.className = 'node';
+      const learned = player.learnedSkills.has(node.id);
+      const parentsLearned = node.req.every(r => player.learnedSkills.has(r));
+      const canLearn = !learned && parentsLearned && player.skillPoints >= node.cost;
+      if (learned) div.classList.add('learned');
+      else if (canLearn) div.classList.add('available');
+      else div.classList.add('locked');
+      div.innerHTML = `<div class="nIcon">${node.icon}</div><div class="nName">${node.name}</div><div class="nInfo">${node.desc}</div><div class="nInfo" style="color:#facc15">${node.cost} очк.</div>`;
+      div.addEventListener('click', () => {
+        if (learned) { showToast('Уже изучено'); return; }
+        if (!parentsLearned) { showToast('Сначала предыдущие'); return; }
+        if (player.skillPoints < node.cost) { showToast('Мало очков'); return; }
+        player.skillPoints -= node.cost;
+        player.learnedSkills.add(node.id);
+        node.apply();
+        updateSkillsBar(); updateUI(); renderTree();
+        showToast(`✓ ${node.name}`);
+      });
+      tierDiv.appendChild(div);
+    });
+    grid.appendChild(tierDiv);
+    if (tierIdx < tree.length-1) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'text-align:center;color:#64748b;font-size:18px;';
+      sep.textContent = '▼';
+      grid.appendChild(sep);
+    }
+  });
+}
+
+function updateSkillsBar() {
+  const H = HEROES[player.hero];
+  const bar = document.getElementById('skillsBar');
+  bar.innerHTML = '';
+  H.startingSkills.forEach((key, i) => {
+    const ab = ABILITIES[key];
+    const div = document.createElement('div');
+    div.className = 'skill';
+    div.innerHTML = `${ab.icon}<div class="cd"></div>`;
+    div.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); useAbility(i); }, { passive: false });
+    div.addEventListener('click', e => { e.stopPropagation(); useAbility(i); });
+    bar.appendChild(div);
+  });
+}
+
+const quests = [
+  { text: 'Убей 5 монстров', check: () => kills >= 5 },
+  { text: 'Собери 3 золота', check: () => goldCollected >= 3 },
+  { text: 'Достигни 5 уровня', check: () => player.level >= 5 },
+  { text: 'Найди портал на севере', check: () => player.pos.z < -20 },
+  { text: 'Победи Древнего Голема', check: () => bossSpawned && mobs.filter(m => m.isBoss).length === 0 }
+];
+let questStage = 0;
+
+function checkQuest() {
+  updateQuestUI();
+  if (questStage < quests.length && quests[questStage].check()) {
+    questStage++;
+    player.skillPoints++;
+    addXP(80);
+    showToast(`✅ Квест выполнен! +1 очко`);
+    updateQuestUI();
+    if (questStage === 4 && !bossSpawned) {
+      bossSpawned = true;
+      spawnMobAt('boss', true);
+      showStory(storyBoss);
+    }
+  }
+}
+
+function updateQuestUI() {
+  const el = document.getElementById('questBox');
+  if (questStage >= quests.length) { el.innerHTML = '<b>🎉 ВСЕ КВЕСТЫ ВЫПОЛНЕНЫ</b>'; return; }
+  el.innerHTML = `<b>📜 Квест ${questStage+1}/${quests.length}:</b><br>${quests[questStage].text}`;
+}
+
+function updateUI() {
+  document.getElementById('hpFill').style.width = (player.hp/player.maxHp*100)+'%';
+  document.getElementById('manaFill').style.width = (player.mana/player.maxMana*100)+'%';
+  document.getElementById('xpFill').style.width = (player.xp/player.xpNext*100)+'%';
+  document.getElementById('statLeft').textContent = `❤ ${Math.floor(player.hp)}/${player.maxHp}`;
+  document.getElementById('statMid').textContent = `⭐ Ур.${player.level} · 💀${kills} · ⭐${player.skillPoints}`;
+  document.getElementById('statRight').textContent = `💧 ${Math.floor(player.mana)}/${player.maxMana}`;
+}
+
+let toastTimer;
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.opacity = 0, 1700);
+}
+
+const storyIntro = { text: `🌍 <b>Пролог</b><br><br>Ты — ${HEROES[currentHero].name}. Небесный Кристалл разбит, осколки разлетелись по кубическим землям.<br><br>Найди портал на севере и победи Древнего Голема!`, cb: null };
+const storyBoss = { text: `⚡ <b>ПРОБУЖДЕНИЕ ГОЛЕМА</b><br><br>Земля дрожит. Древний Голем поднимается из глубин.<br><br>Он ждёт у портала на севере!`, cb: null };
+const storyVictory = { text: `🏆 <b>ПОБЕДА!</b><br><br>Голем повержен! Небесный Кристалл восстановлен!`, cb: () => {
+  setTimeout(() => {
+    const m = document.getElementById('menu');
+    m.classList.remove('hidden');
+    m.innerHTML = `<h1>🏆 ПОБЕДА!</h1><p style="color:#7dd3fc">${HEROES[player.hero].icon} ${HEROES[player.hero].name}<br>Уровень: ${player.level} · Убийств: ${kills}<br>Золото: ${goldCollected}</p><button onclick="location.reload()">🔄 Играть снова</button>`;
+  }, 500);
+}};
+
+function showStory(s) {
+  const box = document.getElementById('storyBox');
+  document.getElementById('storyText').innerHTML = s.text;
+  box.classList.add('open');
+  box._cb = s.cb;
+}
+function closeStory() {
+  const box = document.getElementById('storyBox');
+  box.classList.remove('open');
+  if (box._cb) { const cb = box._cb; box._cb = null; cb(); }
+}
+
+function isSolid(x, y, z) {
+  const t = worldData[`${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`];
+  return t && t !== 'water';
+}
+function checkCollision(pos) {
+  const r = 0.3;
+  const y1 = Math.floor(pos.y), y2 = Math.floor(pos.y + 1.7);
+  for (const y of [y1, y2]) {
+    if (isSolid(pos.x-r, y, pos.z-r) || isSolid(pos.x+r, y, pos.z-r) ||
+        isSolid(pos.x-r, y, pos.z+r) || isSolid(pos.x+r, y, pos.z+r)) return true;
+  }
+  return false;
+}
+
+function updatePlayer(dt) {
+  let mx = 0, mz = 0;
+  if (joyActive) { mx = joyVec.x; mz = joyVec.y; }
+  const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const move = new THREE.Vector3();
+  move.addScaledVector(forward, -mz);
+  move.addScaledVector(right, mx);
+  if (move.length() > 1) move.normalize();
+  if (keys['KeyW']) move.add(forward);
+  if (keys['KeyS']) move.sub(forward);
+  if (keys['KeyA']) move.sub(right);
+  if (keys['KeyD']) move.add(right);
+  const sprint = keys['ShiftLeft'] ? 1.7 : 1;
+  if (move.length() > 0) move.normalize().multiplyScalar(player.speed*sprint);
+  player.vel.x = move.x; player.vel.z = move.z;
+  player.vel.y -= 25*dt;
+  if (keys['Space'] && player.onGround) { player.vel.y = player.jumpPower; player.onGround = false; }
+  const oldX = player.pos.x, oldZ = player.pos.z, oldY = player.pos.y;
+  player.pos.x += player.vel.x*dt; if (checkCollision(player.pos)) player.pos.x = oldX;
+  player.pos.z += player.vel.z*dt; if (checkCollision(player.pos)) player.pos.z = oldZ;
+  player.pos.y += player.vel.y*dt;
+  if (checkCollision(player.pos)) {
+    if (player.vel.y < 0) player.onGround = true;
+    player.pos.y = oldY; player.vel.y = 0;
+  } else player.onGround = false;
+  const lim = WORLD_SIZE - 2;
+  player.pos.x = Math.max(-lim, Math.min(lim, player.pos.x));
+  player.pos.z = Math.max(-lim, Math.min(lim, player.pos.z));
+  if (player.pos.y < -10) { player.pos.set(0, 22, 0); player.vel.set(0,0,0); }
+  camera.position.set(player.pos.x, player.pos.y + EYE_HEIGHT, player.pos.z);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw; camera.rotation.x = pitch;
+  player.mana = Math.min(player.maxMana, player.mana + (player.manaRegen+5)*dt);
+  if (player.hpRegen > 0) player.hp = Math.min(player.maxHp, player.hp + player.hpRegen*dt);
+  else if (player.hp < player.maxHp) player.hp = Math.min(player.maxHp, player.hp + 0.5*dt);
+  if (player.attackCooldown > 0) player.attackCooldown -= dt;
+  for (let i = 0; i < 4; i++) if (player.abilityCds[i] > 0) player.abilityCds[i] -= dt;
+}
+
+function updateMobs(dt) {
+  mobs.forEach(m => {
+    const toPlayer = new THREE.Vector3().subVectors(player.pos, m.mesh.position);
+    const dist = toPlayer.length();
+    let speed = m.speed;
+    if (m.slowT > 0) { speed *= 0.4; m.slowT -= dt; }
+    const attackRange = m.ranged ? 10 : (m.isBoss ? 3.5 : 2.5);
+    const moveThreshold = m.ranged ? 8 : 2;
+    if (dist > moveThreshold) {
+      toPlayer.normalize();
+      m.mesh.position.x += toPlayer.x*speed*dt;
+      m.mesh.position.z += toPlayer.z*speed*dt;
+    }
+    m.mesh.position.y -= 12*dt;
+    const belowKey = `${Math.floor(m.mesh.position.x)},${Math.floor(m.mesh.position.y-0.5)},${Math.floor(m.mesh.position.z)}`;
+    if (worldData[belowKey] || m.mesh.position.y < 5) {
+      m.mesh.position.y = Math.floor(m.mesh.position.y) + (m.isBoss ? 1.5 : 0.8);
+    }
+    m.attackCd -= dt;
+    if (dist < attackRange && m.attackCd <= 0) {
+      m.attackCd = m.isBoss ? 1.5 : (m.ranged ? 2.0 : 1.2);
+      let dmg = m.dmg * (1 - player.dmgReduce);
+      if (player.counter > 0 && Math.random() < player.counter) {
+        damageMob(m, player.strength*0.8, false);
+        showToast('⚡ Контратака!');
+      } else {
+        player.hp -= dmg;
+        showToast(m.isBoss ? '💥 Голем бьёт!' : `💢 -${Math.floor(dmg)}`);
+        spawnDamageParticles(player.pos, 0xff0000);
+      }
+      if (player.hp <= 0) respawnPlayer();
+      updateUI();
+    }
+  });
+  if (mobs.filter(m => !m.isBoss).length < 18 && Math.random() < dt*0.5) spawnRandomMob();
+}
+
+function respawnPlayer() {
+  player.hp = player.maxHp;
+  player.pos.set(0, 22, 0);
+  player.vel.set(0,0,0);
+  showToast('💀 Возрождение');
+}
+
+function activatePortal() {
+  const light = new THREE.PointLight(0xa78bfa, 4, 40);
+  light.position.set(0, 10, -24);
+  scene.add(light);
+  setTimeout(() => showStory(storyVictory), 1500);
+}
+
+let minimapTimer = 0;
+function updateMinimap() {
+  const c = document.getElementById('minimapCanvas');
+  const ctx = c.getContext('2d');
+  const S = 70, scale = S/(WORLD_SIZE*2);
+  ctx.clearRect(0,0,S,S);
+  ctx.fillStyle = '#0a1220'; ctx.fillRect(0,0,S,S);
+  ctx.fillStyle = '#a78bfa';
+  ctx.fillRect(S/2 + (-24)*scale - 2, S/2 - 2, 4, 4);
+  ctx.fillStyle = '#ef4444';
+  mobs.forEach(m => {
+    const x = S/2 + (m.mesh.position.x - player.pos.x)*scale;
+    const y = S/2 + (m.mesh.position.z - player.pos.z)*scale;
+    if (x > 0 && x < S && y > 0 && y < S) ctx.fillRect(x-1, y-1, 3, 3);
+  });
+  ctx.fillStyle = '#4ade80';
+  ctx.beginPath(); ctx.arc(S/2, S/2, 3, 0, Math.PI*2); ctx.fill();
+}
+
+let uiTimer = 0, questTimer = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  updatePlayer(dt); updateMobs(dt); updateArrows(dt); updateParticles(dt);
+  uiTimer += dt;
+  if (uiTimer > 0.15) { uiTimer = 0; updateUI(); updateSkillCooldowns(); }
+  questTimer += dt;
+  if (questTimer > 0.5) { questTimer = 0; checkQuest(); updateMinimap(); }
+  renderer.render(scene, camera);
+}
+
+function updateSkillCooldowns() {
+  document.querySelectorAll('.skill').forEach((el, idx) => {
+    const cd = player.abilityCds[idx];
+    if (cd > 0) { el.classList.add('cooling'); el.querySelector('.cd').textContent = Math.ceil(cd); }
+    else el.classList.remove('cooling');
+  });
+}
+
+document.querySelectorAll('.heroCard').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.heroCard').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    currentHero = card.dataset.hero;
+  });
+});
+document.querySelector('.heroCard[data-hero="sword"]').classList.add('selected');
+
+function startGame() {
+  document.getElementById('menu').classList.add('hidden');
+  init();
+  updateQuestUI();
+}
+
+// ===== PWA: Service Worker =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then(reg => {
+        console.log('✅ SW зарегистрирован:', reg.scope);
+        setInterval(() => reg.update(), 60000);
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+          });
+        });
+      })
+      .catch(err => console.warn('SW ошибка:', err));
+  });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+
+function showUpdateBanner() {
+  const banner = document.createElement('div');
+  banner.style.cssText = `position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#16a34a,#15803d); color: white; padding: 12px 20px; border-radius: 12px; z-index: 9999; font-family: Arial, sans-serif; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 2px solid #4ade80; display: flex; align-items: center; gap: 12px; max-width: 90%;`;
+  banner.innerHTML = `<span>🎉 Доступно обновление!</span><button onclick="applyUpdate()" style="background: white; color: #16a34a; border: none; padding: 6px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px;">Обновить</button>`;
+  document.body.appendChild(banner);
+  window._updateBanner = banner;
+}
+window.applyUpdate = function() {
+  if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('skipWaiting');
+  if (window._updateBanner) window._updateBanner.remove();
+  setTimeout(() => window.location.reload(), 300);
+};
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const menu = document.getElementById('menu');
+  if (menu && !document.getElementById('installBtn')) {
+    const btn = document.createElement('button');
+    btn.id = 'installBtn';
+    btn.textContent = '📲 Установить на телефон';
+    btn.style.cssText = `margin-top: 8px; padding: 10px 24px; font-size: 14px; background: linear-gradient(135deg,#7c3aed,#5b21b6); border: 2px solid #a78bfa; color: white; border-radius: 10px; font-weight: bold; cursor: pointer;`;
+    btn.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btn.remove();
+    };
+    menu.appendChild(btn);
+  }
+});
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.remove();
+});
+
+updateUI();
+</script>
+</body>
+</html>
